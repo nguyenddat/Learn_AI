@@ -46,7 +46,7 @@ class SoftmaxRegression:
         return self
 
 
-    def fit(self, X, y, epochs = 100, verbose = 1):
+    def fit(self, X, y, verbose = 1):
         """
         Fit the model on the data
         :param:
