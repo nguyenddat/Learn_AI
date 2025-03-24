@@ -47,7 +47,14 @@ class BasicCNN:
     
 
     def fit(self, X, y, verbose = 1):
-        history = self.model.fit(X, y, epochs = self.epochs, batch_size = self.batch_size, verbose = verbose)
+        history = self.model.fit(
+            x = X, 
+            y = y,
+            validation_split = 0.2, 
+            epochs = self.epochs, 
+            batch_size = self.batch_size, 
+            verbose = verbose
+        )
         plt.plot(history.history["loss"], label="Loss")
         plt.xlabel("Epochs")
         plt.ylabel("Loss")
