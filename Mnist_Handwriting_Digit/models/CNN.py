@@ -2,7 +2,10 @@ import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
-class BasicCNN:
+from Mnist_Handwriting_Digit.helpers import plot
+from Mnist_Handwriting_Digit import Multiclass_Classifier
+
+class CNN(Multiclass_Classifier.MulticlassClassifer):
     def __init__(
             self, 
             input_shape, 
@@ -46,7 +49,7 @@ class BasicCNN:
         return self
     
 
-    def fit(self, X, y, verbose = 1):
+    def fit(self, X, y, verbose = 1, plot = True):
         history = self.model.fit(
             x = X, 
             y = y,
@@ -55,12 +58,9 @@ class BasicCNN:
             batch_size = self.batch_size, 
             verbose = verbose
         )
-        plt.plot(history.history["loss"], label="Loss")
-        plt.xlabel("Epochs")
-        plt.ylabel("Loss")
-        plt.legend()
-        plt.title("Training Loss Over Epochs")
-        plt.show()
+
+        if plot:
+            plot.plot_history(history)
 
         return self
 

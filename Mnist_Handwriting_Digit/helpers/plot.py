@@ -12,3 +12,12 @@ def display_imgs(imgs):
     
     plt.show()
 
+
+def plot_history(history):
+    plt.figure(figsize = (20, 20))
+    plt.plot(history.history["loss"], marker = "x", color = "blue", alpha = 0.6, linestyle = "-")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
+    plt.legend()
+    plt.title("Training Loss Over Epochs")
+    plt.show()

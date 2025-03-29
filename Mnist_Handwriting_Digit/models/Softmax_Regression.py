@@ -3,8 +3,10 @@ from typing import *
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+from Mnist_Handwriting_Digit.helpers import plot
+from Mnist_Handwriting_Digit import Multiclass_Classifier
 
-class SoftmaxRegression:
+class SoftmaxRegression(Multiclass_Classifier.MulticlassClassifer):
     def __init__(
             self,
             input_shape: tuple,
@@ -46,7 +48,7 @@ class SoftmaxRegression:
         return self
 
 
-    def fit(self, X, y, verbose = 1):
+    def fit(self, X, y, verbose = 1, plot = True):
         """
         Fit the model on the data
         :param:
@@ -63,12 +65,8 @@ class SoftmaxRegression:
             verbose = verbose
         )
 
-        plt.plot(history.history["loss"], label="Loss")
-        plt.xlabel("Epochs")
-        plt.ylabel("Loss")
-        plt.legend()
-        plt.title("Training Loss Over Epochs")
-        plt.show()
+        if plot:
+            plot.plot_history(history)
 
         return self
 
