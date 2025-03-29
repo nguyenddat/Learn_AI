@@ -18,6 +18,9 @@ plot.display_imgs(x_train)
 x_train, y_train, encoder, classes = pre_processing.pre_processing(x_train, y_train)
 x_test, y_test, encoder, classes = pre_processing.pre_processing(x_test, y_test, encoder)
 
+# -----------------------Decision Tree------------------------------
+
+
 # -----------------------SOFTMAX REGRESSION-------------------------
 from models import Softmax_Regression
 
@@ -85,3 +88,4 @@ plt.xlabel("Predicted")
 plt.ylabel("Actual")
 plt.title("Confusion Matrix")
 plt.show()
+
