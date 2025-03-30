@@ -42,12 +42,17 @@ class LinearRegression(RegressionModel):
         )
 
         if plot:
-            plt.figure(figsize = (20, 10))
-            plt.plot(history.history["val_root_mean_squared_error"], label = "val_rmse", marker = "x", color = "red", alpha = 0.4, linestyle = "-")
-            plt.plot(history.history["loss"], label = "train_rmse", marker = "x", color = "blue", alpha = 0.4, linestyle = "-")
-            plt.xlabel("Epochs")
-            plt.ylabel("Loss")
-            plt.legend()
+            metrics = ["loss", "root_mean_squared_error", "val_loss", "val_root_mean_squared_error"]
+            fig, axes = plt.subplots(2, 2, figsize = (20, 10))
+
+            for y in range(2):
+                for x in range(2):
+                    axe = axes[y, x]
+                    axe.plot(history.history[metrics[y * 2 + x]], label = metrics[y * 2 + x], color = "blue", alpha = 0.4, linestyle = "-")
+                    axe.set_xlabel("Epochs")
+                    axe.set_ylabel(f"{metrics[y * 2 + x]}")
+            
+            plt.tight_layout()
             plt.show()
 
 
