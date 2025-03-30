@@ -1,110 +1,126 @@
+from typing import *
+
 import numpy as np
+from tqdm import tqdm
 
-from Mnist_Handwriting_Digit import Multiclass_Classifier
-
-
-def entropy(y):
-    """
-    Hàm tính entropy của tập S
-    :param:
-        - y: np.ndarray
-    :return:
-        - entropy: float
-    """
-    H = 0
-    for cl in np.unique(y):
-        ni = np.sum(y == cl)
-        if ni == 0: continue
-
-        pi = ni / y.shape[0]
-        H -= pi * np.log2(pi)
-
-    return H
+from helpers.model_helpers import *
 
 
-def greddy_search(X, y):
-    """
-    Tìm kiếm tham lam nhằm tìm feature j và threshold t tối ưu cho cây.
-    :param:
-        - X: np.ndarray
-        - y: np.ndarray
-    :return:
-        - j: int
-        - t: float
-    """
-    assert X.shape[0] == y.shape[0]
-    
-    # Initialize
-    N, d = X.shape
-    j_best, t_best, max_G = None, None, -np.inf
-    H_s = entropy(y)
-
-    # Gained Information Function G
-    for j in range(d):
-        sorted_idx = np.argsort(X[:, j])
-        X_sorted = X[sorted_idx]
-        y_sorted = y[sorted_idx]
-
-        for i in range(1, N):
-            t = (X_sorted[i - 1] + X_sorted[i]) / 2
-
-            left_mask = X_sorted[:, j] <= t
-            right_mask = X_sorted[:, j] > t
-
-            x_left, x_right = X_sorted[left_mask], X_sorted[right_mask]
-            y_left, y_right = y_sorted[left_mask], y_sorted[right_mask]
-
-            H_left = entropy(y_left)
-            H_right = entropy(y_right)
-            G = H_s - (H_left * x_left.shape[0] / N + H_right * x_right.shape[0] / N)
-
-            if G > max_G:
-                j_best, t_best, max_G = j, t, G
-                
-    return j_best, t_best
-
-
-
-class DecisionTree(Multiclass_Classifier.MulticlassClassifer):
-    def __init__(self, max_depth = None, min_samples_split = 2):
+class DecisionTree:
+    def __init__(
+            self,
+            min_samples: int = 5,
+            max_depth: int = 10,
+    ):
+        """
+        :param
+            - min_samples: số observations tối thiểu để chia cành
+            - max_depth: độ sâu tối đa của cây
+        """
+        self.min_samples = min_samples
         self.max_depth = max_depth
-        self.min_samples_split = min_samples_split
 
 
-    def fit(self, X: np.ndarray, y: np.ndarray, verbose = 1, plot = True):
-        self.tree = self.build_tree(X, y, depth = 0, verbose = verbose, plot = plot)
-        return self
-
-    
-    def build_tree(self, X, y, depth, verbose, plot):
-        assert X.shape[0] == y.shape[0]
-
-        N, d = X.shape
-        if (self.max_depth is not None) and depth >= self.max_depth:
-            return self.create_leaf(y)
-
-        if N <= self.min_samples_split:
-            return self.create_leaf(y)
+    def fit(
+            self,
+            X: np.ndarray,
+            y: np.ndarray,
+            verbose: int = 1,
+            current_depth: int = 0
+    ):
+        if len(X.shape) > 2:
+            X = X.reshape(X.shape[0], -1)
             
+        assert X.shape[0] == y.shape[0]
+        N, d = X.shape
 
-        j, t = greddy_search(X, y)
-        if j is None or t is None:
-            self.create_leaf(y)
+        # Nếu có thể tách node ==> tìm node trái phải
+        if (N >= self.min_samples) and (current_depth <= self.max_depth):
+            best_split = self.best_split(X, y)
 
-        left_mask = X[:, j] <= t
-        right_mask = X[:, j] > t
+            if best_split["gain"] != 0:
+                if verbose:
+                    print(f"""Depth: {current_depth} --> Gain: {best_split["gain"]}""")
 
-        x_left, x_right = X[left_mask], X[right_mask]
-        y_left, y_right = y[left_mask], y[right_mask]
+                left_node = self.fit(best_split["left_observations"], best_split["left_labels"], verbose, current_depth + 1)
+                right_node = self.fit(best_split["right_observations"], best_split["right_labels"], verbose, current_depth + 1)
 
-        return {
-            "feature": j,
-            "threshold": t,
-            "left": self.build_tree(x_left, y_left, verbose, plot),
-            "right": self.build_tree(x_right, y_right, verbose, plot)
+
+                return Node(
+                    feature = best_split["feature"],
+                    threshold = best_split["threshold"],
+                    left = left_node,
+                    right = right_node,
+                    gain = best_split["gain"]
+                )
+        
+        # Nếu không, trả về value
+        leaf_value = self.leaf_value(y)
+        return Node(value = leaf_value)
+    
+
+    def leaf_value(self, y):
+        unique_labels, counts = np.unique(y, return_counts = True)
+        return unique_labels[np.argmax(counts)]
+    
+
+    def best_split(
+            self,
+            X: np.ndarray,
+            y: np.ndarray
+    ):
+        N, d = X.shape
+        best_split = {
+            "gain": 0,
+            "feature": None,
+            "threshold": None,            
         }
 
+        # Duyệt toàn bộ các feature
+        for j in tqdm(range(d), desc = "Finding t, j..."):
+            unique_xj = np.unique(X[:, j])
+            
+            for t in unique_xj:
+                gain = information_gain(j, t, X, y)
+                
+                if gain["gain"] > best_split["gain"]:
+                    best_split["gain"] = gain["gain"]
+                    best_split["feature"] = j
+                    best_split["threshold"] = t
+                    best_split["left_observations"] = gain["left_observations"]
+                    best_split["right_observations"] = gain["right_observations"]
+                    best_split["left_labels"] = gain["left_labels"]
+                    best_split["right_labels"] = gain["right_labels"]
+        
+        return best_split
 
-    def create_leaf(self, y):
-        classes, counts = np.unique(y, return_counts = True)
-        return classes[np.argmax(counts)]
+
+class Node:
+    """
+    Biểu diễn Node trong cây
+    """
+    def __init__(
+            self,
+            feature: int = None,
+            threshold: float = None,
+            left: Any = None,
+            right: Any = None,
+            gain: float = None,
+            value: Any = None
+    ):
+        """
+        :param
+            - feature: feature thứ j
+            - threshold: ngưỡng t
+            - left: left child node
+            - right: right child node
+            - gain: information gain
+            - value: Nếu đây là lớp lá ==> đây là giá trị của nhãn dự đoán
+        """
+        self.feature = feature
+        self.threshold = threshold
+        self.left = left
+        self.right = right
+        self.gain = gain
+        self.value = value
+
